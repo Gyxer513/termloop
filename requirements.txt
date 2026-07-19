@@ -3,3 +3,6 @@ SQLAlchemy>=2.0.41,<2.1
 aiosqlite>=0.21
 alembic>=1.16
 APScheduler>=3.11,<4
+mcp>=1.12,<2
+uvicorn>=0.30
+

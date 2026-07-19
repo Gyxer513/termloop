@@ -8,3 +8,18 @@ services:
       DATABASE_URL: sqlite+aiosqlite:////data/termloop.db
     volumes:
       - ./data:/data
+
+  termloop-mcp:
+    build: .
+    container_name: termloop-mcp
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////data/termloop.db
+    command: python -m app.mcp_main
+    ports:
+      - "8210:8210"
+    volumes:
+      - ./data:/data
+    depends_on:
+      - termloop

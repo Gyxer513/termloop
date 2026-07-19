@@ -8,15 +8,16 @@ from aiogram.types import CallbackQuery, Message
 from app.bot import texts
 from app.bot.keyboards import ReviewCb, answer_kb
 from app.bot.render import card_message, esc, render_answer, render_result
-from app.config import DEFINITION_MAX_LEN, TERM_MAX_LEN, TOPIC_MAX_LEN, Config
+from app.config import Config
 from app.services.review import (
     clear_pending,
     show_definition,
     start_review,
     submit_answer,
 )
-from app.services.users import get_or_create_user, set_notifications
+from app.services.users import get_or_create_user, get_user, set_notifications
 from app.services.words import add_word, delete_word, edit_word, list_topics, list_words
+from app.validation import validate_card_fields
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -26,18 +27,6 @@ MAX_MESSAGE_LEN = 4000
 
 def _parse_parts(raw: str) -> list[str]:
     return [part.strip() for part in raw.split("|")]
-
-
-def _validate_card_fields(term: str, definition: str, topic: str | None) -> str | None:
-    if not term or not definition:
-        return "Термин и определение не могут быть пустыми."
-    if len(term) > TERM_MAX_LEN:
-        return f"Термин длиннее {TERM_MAX_LEN} символов."
-    if len(definition) > DEFINITION_MAX_LEN:
-        return f"Определение длиннее {DEFINITION_MAX_LEN} символов."
-    if topic is not None and len(topic) > TOPIC_MAX_LEN:
-        return f"Тема длиннее {TOPIC_MAX_LEN} символов."
-    return None
 
 
 def _extract_card_fields(parts: list[str]) -> tuple[str | None, str, str] | None:
@@ -52,7 +41,10 @@ def _extract_card_fields(parts: list[str]) -> tuple[str | None, str, str] | None
 
 @router.message(Command("start", "help"))
 async def cmd_start(message: Message, session) -> None:
+    is_new = await get_user(session, message.from_user.id) is None
     await get_or_create_user(session, message.from_user.id)
+    if is_new:
+        await message.answer(texts.GREETING)
     await message.answer(texts.HELP)
 
 
@@ -67,7 +59,7 @@ async def cmd_add(message: Message, command: CommandObject, session) -> None:
         await message.answer(texts.USAGE_ADD)
         return
     topic, term, definition = fields
-    error = _validate_card_fields(term, definition, topic)
+    error = validate_card_fields(term, definition, topic)
     if error:
         await message.answer(error)
         return
@@ -91,7 +83,7 @@ async def cmd_edit(message: Message, command: CommandObject, session) -> None:
         await message.answer(texts.USAGE_EDIT)
         return
     topic, term, definition = fields
-    error = _validate_card_fields(term, definition, topic)
+    error = validate_card_fields(term, definition, topic)
     if error:
         await message.answer(error)
         return

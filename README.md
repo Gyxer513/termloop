@@ -68,6 +68,32 @@ docker compose logs -f
 git pull && docker compose up -d --build
 ```
 
+## MCP-сервер: запись терминов из Claude/LLM
+
+Рядом с ботом (`termloop-mcp` в compose) работает MCP-сервер (streamable HTTP)
+над той же SQLite. Инструменты: `add_term`, `list_terms`, `list_terms_topics`.
+Карточки пишутся в аккаунт из `MCP_TELEGRAM_USER_ID` и попадают в общую
+ротацию — бот покажет их обычными карточками с кнопками.
+
+В `.env` на VM: `MCP_TELEGRAM_USER_ID` (свой Telegram ID, можно узнать
+у @userinfobot) и `MCP_AUTH_TOKEN` (любая длинная случайная строка).
+
+Подключение к Claude Code (на рабочей машине):
+
+```bash
+claude mcp add --transport http termloop http://192.168.1.35:8210/mcp \
+  --header "Authorization: Bearer <MCP_AUTH_TOKEN>"
+```
+
+Claude Desktop: Settings → Connectors → Add custom connector →
+`http://192.168.1.35:8210/mcp`.
+
+ChatGPT-коннекторам нужен публичный HTTPS-URL — из LAN напрямую не выйдет;
+при желании пробрасывается через Tailscale Funnel / Cloudflare Tunnel.
+
+Проверка с VM: `curl -s -H "Authorization: Bearer <token>" \
+http://localhost:8210/mcp` (без токена — 401).
+
 ## Эксплуатация
 
 - Всё состояние — в `./data/termloop.db` (bind mount, попадает в snapshot VM).
