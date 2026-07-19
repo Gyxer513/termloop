@@ -13,31 +13,45 @@ def esc(text: str) -> str:
     return html.escape(text, quote=False)
 
 
-def render_question(word: Word) -> str:
-    lines = []
+def _card_header(word: Word) -> str:
     if word.topic:
-        lines.append(f"📂 {esc(word.topic)}")
-    lines += [f"🧠 <b>{esc(word.term)}</b>", "", "Вспомни определение, затем открой ответ."]
-    return "\n".join(lines)
+        return f"📂 {esc(word.topic)} · №{word.number}"
+    return f"🔖 №{word.number}"
+
+
+def render_question(word: Word) -> str:
+    return "\n".join(
+        [
+            _card_header(word),
+            f"🧠 <b>{esc(word.term)}</b>",
+            "",
+            "Вспомни определение, затем открой ответ.",
+        ]
+    )
 
 
 def render_answer(word: Word) -> str:
-    lines = []
-    if word.topic:
-        lines.append(f"📂 {esc(word.topic)}")
-    lines += [f"🧠 <b>{esc(word.term)}</b>", "", esc(word.definition), "", "Получилось вспомнить?"]
-    return "\n".join(lines)
+    return "\n".join(
+        [
+            _card_header(word),
+            f"🧠 <b>{esc(word.term)}</b>",
+            "",
+            esc(word.definition),
+            "",
+            "Получилось вспомнить?",
+        ]
+    )
 
 
 def render_result(result: AnswerResult) -> str:
     if result.remembered:
         return (
-            f"✅ Помню: <b>{esc(result.word.term)}</b>\n"
+            f"✅ Помню: <b>{esc(result.word.term)}</b> (№{result.word.number})\n"
             f"Приоритет {result.old_priority} → {result.new_priority}, "
             f"серия {result.streak}.\n\n/go — следующая карточка"
         )
     return (
-        f"🔁 Не помню: <b>{esc(result.word.term)}</b>\n"
+        f"🔁 Не помню: <b>{esc(result.word.term)}</b> (№{result.word.number})\n"
         f"Приоритет снова 100, серия сброшена.\n\n/go — следующая карточка"
     )
 
