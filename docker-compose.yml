@@ -1,0 +1,10 @@
+services:
+  termloop:
+    build: .
+    container_name: termloop
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////data/termloop.db
+    volumes:
+      - ./data:/data
