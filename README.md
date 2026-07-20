@@ -1,111 +1,141 @@
-# 🧠 Gyxer TermLoop
+# 🧠 TermLoop
 
-> Термины возвращаются, пока не запомнишь.
+> Terms keep coming back until you remember them.
 
-Telegram-бот для повторения профессиональных терминов: личные карточки
-«термин — определение», приоритетная ротация, самопроверка кнопками
-«Помню / Не помню», напоминания по общему расписанию.
+A minimal Telegram bot for spaced repetition of professional terminology —
+plus an MCP server, so you can save terms into your dictionary right from a
+conversation with an LLM (Claude Code, Claude Desktop, or anything else that
+speaks [MCP](https://modelcontextprotocol.io)).
 
-Спека: Nextcloud-заметка «🧠 Gyxer TermLoop — MVP» (№116833).
+[Документация на русском](docs/README.ru.md)
 
-## Стек
+## Why
 
-Python 3.12 · aiogram 3 · SQLAlchemy 2 (async) · Alembic · APScheduler ·
-SQLite (WAL) · Docker Compose. Long polling, публичного endpoint нет.
+The problem is rarely a lack of engineering understanding — it's that
+professional vocabulary lags behind the concepts you already use in practice.
+You know that "reprocessing must not change the result"; TermLoop makes sure
+the word *idempotency* comes back to you until the link sticks.
 
-## Команды бота
+No AI grading, no token spend: you judge yourself with two buttons,
+the priority math is deterministic.
 
-| Команда | Действие |
+## Features
+
+- Personal card dictionaries (term — definition, optional topic)
+- Priority rotation: new and forgotten cards come back more often
+  (100 → decrements of 1/10/25/50 per recall streak; "forgot" resets to 100)
+- Self-assessment flow: show term → recall → reveal definition → Remember /
+  Forgot
+- Manual reviews (`/go [topic]`) and a shared notification schedule
+- MCP server (streamable HTTP) with `add_term` / `list_terms` /
+  `list_terms_topics` — write terms from any LLM chat
+- Sturdy by design: state machine with single-use review tokens and TTL,
+  idempotent callbacks, row-level ownership in every query, rate limiting,
+  optional Telegram ID allowlist
+- Boring ops: single process, long polling (no public endpoint), SQLite WAL,
+  Alembic migrations, Docker Compose
+
+## Bot commands
+
+| Command | Action |
 |---|---|
-| `/start` | справка |
-| `/add Тема \| Термин \| Определение` | добавить карточку (тема необязательна) |
-| `/edit 17 \| Тема \| Термин \| Определение` | изменить карточку №17 |
-| `/delete 17` | удалить карточку №17 |
-| `/list [тема]` | список карточек |
-| `/topics` | список тем |
-| `/go [тема]` | начать/продолжить повторение |
-| `/notify on\|off` | напоминания |
-| `/cancel` | сбросить активную попытку |
+| `/start` | create account, show help |
+| `/add Topic \| Term \| Definition` | add a card (topic is optional) |
+| `/edit 17 \| Topic \| Term \| Definition` | edit card #17 |
+| `/delete 17` | delete card #17 |
+| `/list [topic]` | list your cards |
+| `/topics` | list topics |
+| `/go [topic]` | start or resume a review |
+| `/notify on\|off` | toggle reminders |
+| `/cancel` | reset the active attempt |
 
-## Локальная разработка (Windows/Linux)
+## Quick start
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate          # Windows; на Linux: source .venv/bin/activate
-pip install -r requirements-dev.txt
-
-# тесты и линт
-pytest
-ruff check .
-
-# запуск (нужен BOT_TOKEN в окружении или .env, загрузка .env — вручную)
-alembic upgrade head
-python -m app.main
-```
-
-## Деплой на homelab (VM финтрекера, через Gitea)
-
-Один раз:
+Requirements: Docker + Compose, a bot token from
+[@BotFather](https://t.me/BotFather).
 
 ```bash
-# 1. В Gitea создать пустой репозиторий termloop, затем локально:
-git remote add origin ssh://git@<gitea-host>/<owner>/termloop.git
-git push -u origin master
-
-# 2. На VM:
-git clone ssh://git@<gitea-host>/<owner>/termloop.git
+git clone https://github.com/Gyxer513/termloop.git
 cd termloop
-mkdir -p data && sudo chown 1000:1000 data   # контейнер работает от uid 1000
+mkdir -p data && sudo chown 1000:1000 data   # container runs as uid 1000
 cp .env.example .env
-# вписать BOT_TOKEN от @BotFather (и при желании ALLOWED_TELEGRAM_IDS)
+# set BOT_TOKEN, MCP_TELEGRAM_USER_ID, MCP_AUTH_TOKEN in .env
 docker compose up -d --build
-docker compose logs -f
 ```
 
-Обновление:
+Configuration (`.env`):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `BOT_TOKEN` | — | Telegram bot token (required) |
+| `REVIEW_TIMES` | `10:00,19:00` | shared reminder schedule |
+| `TIMEZONE` | `Europe/Moscow` | schedule timezone |
+| `PENDING_TTL_MINUTES` | `30` | active attempt expiry |
+| `ALLOWED_TELEGRAM_IDS` | empty | optional allowlist (empty = everyone) |
+| `MCP_TELEGRAM_USER_ID` | — | whose dictionary MCP tools write to (required for MCP) |
+| `MCP_AUTH_TOKEN` | empty | static bearer token for the MCP endpoint |
+| `MCP_PORT` | `8210` | MCP server port |
+
+## MCP: save terms from an LLM conversation
+
+The `termloop-mcp` service exposes the dictionary at `http://<host>:8210/mcp`
+(streamable HTTP, bearer auth). Cards land in the same rotation the bot uses.
+
+Claude Code:
 
 ```bash
-git pull && docker compose up -d --build
-```
-
-## MCP-сервер: запись терминов из Claude/LLM
-
-Рядом с ботом (`termloop-mcp` в compose) работает MCP-сервер (streamable HTTP)
-над той же SQLite. Инструменты: `add_term`, `list_terms`, `list_terms_topics`.
-Карточки пишутся в аккаунт из `MCP_TELEGRAM_USER_ID` и попадают в общую
-ротацию — бот покажет их обычными карточками с кнопками.
-
-В `.env` на VM: `MCP_TELEGRAM_USER_ID` (свой Telegram ID, можно узнать
-у @userinfobot) и `MCP_AUTH_TOKEN` (любая длинная случайная строка).
-
-Подключение к Claude Code (на рабочей машине):
-
-```bash
-claude mcp add --transport http termloop http://192.168.1.35:8210/mcp \
+claude mcp add --transport http termloop http://<host>:8210/mcp \
   --header "Authorization: Bearer <MCP_AUTH_TOKEN>"
 ```
 
-Claude Desktop: Settings → Connectors → Add custom connector →
-`http://192.168.1.35:8210/mcp`.
+Claude Desktop (`claude_desktop_config.json`, via a local `mcp-remote`
+bridge — connectors on claude.ai itself require a public HTTPS URL):
 
-ChatGPT-коннекторам нужен публичный HTTPS-URL — из LAN напрямую не выйдет;
-при желании пробрасывается через Tailscale Funnel / Cloudflare Tunnel.
+```json
+"termloop": {
+  "command": "npx",
+  "args": ["-y", "mcp-remote", "http://<host>:8210/mcp",
+           "--allow-http", "--header", "Authorization:${AUTH_HEADER}"],
+  "env": { "AUTH_HEADER": "Bearer <MCP_AUTH_TOKEN>" }
+}
+```
 
-Проверка с VM: `curl -s -H "Authorization: Bearer <token>" \
-http://localhost:8210/mcp` (без токена — 401).
+Then just say: *"save to termloop: bulkhead — resource isolation so one
+failing component can't take down the rest, topic Architecture."*
 
-## Эксплуатация
+## Development
 
-- Всё состояние — в `./data/termloop.db` (bind mount, попадает в snapshot VM).
-- Модель DR: ежедневный snapshot VM, RPO до 24 часов, HA не требуется.
-- Проверка восстановления: развернуть snapshot, `docker compose up -d`,
-  убедиться что `/list` показывает карточки.
-- Расписание напоминаний общее для всех: `REVIEW_TIMES` + `TIMEZONE` в `.env`.
-- Незавершённая попытка протухает через `PENDING_TTL_MINUTES` (30 по умолчанию).
+Python 3.12+, no external services needed:
 
-## Stop rule
+```bash
+python -m venv .venv && . .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+pytest          # 34 tests: priority policy, state machine, ownership, scheduler, migrations
+ruff check .
+```
 
-MVP закончен, когда пользователь может вести словарь, повторять карточки
-вручную и по расписанию, а состояние переживает рестарт. Дальше — ничего
-(AI-проверка, web UI, теги, аналитика), пока реальное использование не
-покажет конкретную потребность.
+Stack: [aiogram 3](https://github.com/aiogram/aiogram) ·
+SQLAlchemy 2 (async) · Alembic · APScheduler ·
+[MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) ·
+SQLite (WAL).
+
+Layout: domain logic lives in `app/services/` (~280 lines, fully covered by
+tests), Telegram wiring in `app/bot/`, the MCP server in `app/mcp_server.py`.
+
+## Design notes
+
+- Both triggers — `/go` and the scheduler — call the same
+  `start_review(user, topic, source)` application service.
+- Card selection: top-10 by priority with deterministic tie-breaks, random
+  pick in the application. No `ORDER BY RANDOM()`.
+- Review state machine: `IDLE → QUESTION_SHOWN → ANSWER_SHOWN → IDLE`,
+  guarded by a per-attempt random token; stale or replayed callbacks are
+  safe no-ops.
+- Authorization is row-level and lives in the queries themselves: a foreign
+  card is indistinguishable from a missing one.
+- The stop rule is part of the spec: no AI grading, no web UI, no tag system,
+  no analytics until real usage demands them.
+
+## License
+
+[MIT](LICENSE)
