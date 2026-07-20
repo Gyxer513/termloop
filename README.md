@@ -7,7 +7,7 @@ plus an MCP server, so you can save terms into your dictionary right from a
 conversation with an LLM (Claude Code, Claude Desktop, or anything else that
 speaks [MCP](https://modelcontextprotocol.io)).
 
-[Документация на русском](docs/README.ru.md)
+**Docs:** [gyxer513.github.io/termloop](https://gyxer513.github.io/termloop/) · [Документация на русском](docs/README.ru.md)
 
 ## Why
 
