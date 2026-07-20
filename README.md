@@ -136,6 +136,11 @@ tests), Telegram wiring in `app/bot/`, the MCP server in `app/mcp_server.py`.
 - The stop rule is part of the spec: no AI grading, no web UI, no tag system,
   no analytics until real usage demands them.
 
+## Questions & feedback
+
+Ask in [Discussions (Q&A)](https://github.com/Gyxer513/termloop/discussions) —
+bugs go to [Issues](https://github.com/Gyxer513/termloop/issues).
+
 ## License
 
 [MIT](LICENSE)

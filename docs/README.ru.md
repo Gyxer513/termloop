@@ -136,6 +136,11 @@ SQLite (WAL).
 - Stop rule — часть спеки: ни AI-проверки, ни web UI, ни тегов, ни
   аналитики, пока реальное использование их не потребует.
 
+## Вопросы и обратная связь
+
+Вопросы — в [Discussions (Q&A)](https://github.com/Gyxer513/termloop/discussions),
+баги — в [Issues](https://github.com/Gyxer513/termloop/issues).
+
 ## Лицензия
 
 [MIT](https://github.com/Gyxer513/termloop/blob/master/LICENSE)
