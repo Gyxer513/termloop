@@ -1,0 +1,41 @@
+site_name: TermLoop
+site_description: Telegram bot for spaced repetition of professional terms + MCP server
+site_url: https://gyxer513.github.io/termloop/
+repo_url: https://github.com/Gyxer513/termloop
+repo_name: Gyxer513/termloop
+
+theme:
+  name: material
+  icon:
+    logo: material/brain
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+  features:
+    - navigation.sections
+    - navigation.footer
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - MCP integration: mcp.md
+  - Design notes: design.md
+  - По-русски: README.ru.md

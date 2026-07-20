@@ -7,7 +7,7 @@
 (Claude Code, Claude Desktop или любой другой клиент
 [MCP](https://modelcontextprotocol.io)).
 
-[English documentation](../README.md)
+[English documentation](index.md) · [MCP](mcp.md) · [архитектура](design.md)
 
 ## Зачем
 
@@ -138,4 +138,4 @@ SQLite (WAL).
 
 ## Лицензия
 
-[MIT](../LICENSE)
+[MIT](https://github.com/Gyxer513/termloop/blob/master/LICENSE)
